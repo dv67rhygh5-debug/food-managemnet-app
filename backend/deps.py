@@ -1,0 +1,34 @@
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+
+from config import supabase
+
+bearer_scheme = HTTPBearer()
+
+
+async def get_current_user(creds: HTTPAuthorizationCredentials = Depends(bearer_scheme)) -> dict:
+    token = creds.credentials
+    try:
+        user_resp = supabase.auth.get_user(token)
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token")
+
+    user = getattr(user_resp, "user", None)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token")
+
+    profile_resp = supabase.table("profiles").select("*").eq("id", user.id).single().execute()
+    profile = profile_resp.data
+    if not profile:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Profile not found for user")
+
+    return profile
+
+
+def require_role(*roles: str):
+    async def _check(profile: dict = Depends(get_current_user)) -> dict:
+        if profile["role"] not in roles:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not permitted for this role")
+        return profile
+
+    return _check

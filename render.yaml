@@ -1,0 +1,25 @@
+# Render "Blueprint" — on render.com: New > Blueprint > point at this repo, and it
+# reads this file to create the service. You still fill in the actual secret values
+# yourself in the Render dashboard (marked sync: false below).
+services:
+  - type: web
+    name: wastelytics-api
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn server:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_STORAGE_BUCKET
+        value: surplus-photos
+      - key: CORS_ORIGINS
+        sync: false
+      - key: QR_CODE_IMAGE_URL
+        sync: false
+      - key: PAYMENT_UPI_ID
+        sync: false
