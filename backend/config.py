@@ -17,5 +17,8 @@ CORS_ORIGINS = os.environ.get("CORS_ORIGINS", "*").split(",")
 QR_CODE_IMAGE_URL = os.environ.get("QR_CODE_IMAGE_URL", "")
 PAYMENT_UPI_ID = os.environ.get("PAYMENT_UPI_ID", "")
 
+# Required to self-signup as admin — keeps the admin role from being open to anyone who hits the API.
+ADMIN_INVITE_CODE = os.environ.get("ADMIN_INVITE_CODE", "")
+
 # Service-role client: server-side only, bypasses RLS. Used for all DB writes/reads here.
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)

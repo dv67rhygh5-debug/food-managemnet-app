@@ -1,6 +1,7 @@
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from config import supabase
+from config import supabase, ADMIN_INVITE_CODE, SUPABASE_URL, SUPABASE_ANON_KEY
 from deps import get_current_user
 from schemas import LoginRequest, SignupRequest
 
@@ -9,6 +10,10 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 @router.post("/signup")
 async def signup(body: SignupRequest):
+    if body.role == "admin":
+        if not ADMIN_INVITE_CODE or body.admin_invite_code != ADMIN_INVITE_CODE:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid admin invite code")
+
     # Admin-created + email_confirm=True skips the confirmation-email/OTP step entirely —
     # no email sending setup needed, the account is usable immediately.
     try:
@@ -38,18 +43,28 @@ async def signup(body: SignupRequest):
 
 @router.post("/login")
 async def login(body: LoginRequest):
+    # A plain REST call, deliberately not `supabase.auth.sign_in_with_password()` on the shared
+    # service-role client — that call mutates the shared client's session in supabase-py, which
+    # then makes every subsequent `.table()` call across ALL requests in this process run as that
+    # logged-in user instead of the service role (silently breaking RLS-bypass server-wide).
     try:
-        result = supabase.auth.sign_in_with_password({"email": body.email, "password": body.password})
+        resp = httpx.post(
+            f"{SUPABASE_URL}/auth/v1/token?grant_type=password",
+            headers={"apikey": SUPABASE_ANON_KEY, "Content-Type": "application/json"},
+            json={"email": body.email, "password": body.password},
+            timeout=10,
+        )
     except Exception:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
 
-    if not result.session:
+    if resp.status_code != 200:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
 
+    data = resp.json()
     return {
-        "access_token": result.session.access_token,
-        "refresh_token": result.session.refresh_token,
-        "user_id": result.user.id,
+        "access_token": data["access_token"],
+        "refresh_token": data["refresh_token"],
+        "user_id": data["user"]["id"],
     }
 
 

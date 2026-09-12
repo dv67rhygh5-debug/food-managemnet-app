@@ -23,3 +23,5 @@ services:
         sync: false
       - key: PAYMENT_UPI_ID
         sync: false
+      - key: ADMIN_INVITE_CODE
+        sync: false

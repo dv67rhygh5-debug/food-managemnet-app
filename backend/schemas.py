@@ -13,6 +13,7 @@ class SignupRequest(BaseModel):
     org_name: str
     city: Optional[str] = None
     phone: Optional[str] = None
+    admin_invite_code: Optional[str] = None
 
 
 class LoginRequest(BaseModel):

@@ -39,7 +39,7 @@ async def submit_payment(body: PaymentSubmission, profile: dict = Depends(requir
 async def pending_payments(_: dict = Depends(require_role("admin"))):
     resp = (
         supabase.table("subscriptions")
-        .select("*, profiles(org_name, city)")
+        .select("*, profiles!subscriptions_restaurant_id_fkey(org_name, city)")
         .eq("status", "pending_verification")
         .execute()
     )

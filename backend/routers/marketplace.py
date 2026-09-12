@@ -28,7 +28,11 @@ async def create_listing(body: ListToMarketplace, profile: dict = Depends(requir
 
 @router.get("/marketplace/listings")
 async def list_listings(profile: dict = Depends(get_current_user)):
-    query = supabase.table("marketplace_listings").select("*").order("created_at", desc=True)
+    query = (
+        supabase.table("marketplace_listings")
+        .select("*, profiles(org_name, city)")
+        .order("created_at", desc=True)
+    )
     if profile["role"] == "ngo":
         query = query.eq("status", "available")
     elif profile["role"] == "restaurant":
@@ -56,7 +60,7 @@ async def create_claim(body: ClaimCreate, profile: dict = Depends(require_role("
 async def list_my_claims(profile: dict = Depends(require_role("ngo"))):
     resp = (
         supabase.table("claims")
-        .select("*, marketplace_listings(*)")
+        .select("*, marketplace_listings(*, profiles(org_name, city))")
         .eq("ngo_id", profile["id"])
         .order("created_at", desc=True)
         .execute()

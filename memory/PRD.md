@@ -33,28 +33,38 @@ Build a responsive, interactive web frontend for "Wastelytics" — a subscriptio
 ### P1
 - Extend Hindi translation to inline strings inside RestaurantTools, InventoryWatch, ExpiryWatch, WastePlaybook, AdminPage, LogPage form section titles
 - Localize NGO filter chip labels using `t.filterHigh/filterVeg/filterCold`
-- Wire frontend to the new backend (replace localStorage/mock state with real API calls)
+- Dashboard's "Waste by day"/"Waste by category" charts (`weekData`/`categoryData`) are still hardcoded fake numbers, unlike the rest of the app — should be computed from real logs
 ### P2
 - Split monolithic `App.js` into `pages/` and `components/` folders
-- Real photo upload UI (backend endpoint already exists — see below)
+- Listing "priority"/"dietary"/"storage" badges are cosmetic placeholders (`"—"`/`"Medium"`) since the backend schema doesn't carry them — either add real columns or drop the badges
+- "Edit listing" button on marketplace cards is still a toast-only stub
 
 ## Payment approach (decided)
 No payment gateway (Razorpay/Stripe explicitly excluded). Restaurants scan a static QR code (own UPI/bank QR) and submit a reference note; an admin manually approves/rejects via the billing endpoints. See `backend/routers/billing.py`.
 
-## Known Mocked
-Frontend is still fully mocked (React state + localStorage) — backend below is real but not yet wired up to it.
-
-## Backend (Session 4 — added)
+## Backend (Session 4 — built)
 - Stack: FastAPI + **Supabase** (Postgres + Supabase Auth + Supabase Storage). MongoDB/motor removed.
-- `backend/config.py` — env/config + Supabase client (placeholders in `.env.example`: `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, `SUPABASE_ANON_KEY`, `SUPABASE_STORAGE_BUCKET`, `QR_CODE_IMAGE_URL`, `PAYMENT_UPI_ID`)
-- `backend/deps.py` — `get_current_user` / `require_role()` dependencies, verify Supabase Auth bearer tokens
+- `backend/config.py` — env/config + Supabase client (placeholders in `.env.example`: `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, `SUPABASE_ANON_KEY`, `SUPABASE_STORAGE_BUCKET`, `QR_CODE_IMAGE_URL`, `PAYMENT_UPI_ID`, `ADMIN_INVITE_CODE`)
+- `backend/deps.py` — `get_current_user` / `require_role()` dependencies, verify Supabase Auth bearer tokens via a direct REST call (see gotcha below)
 - `backend/schemas.py` — pydantic request models
 - `backend/routers/` — `auth.py` (signup/login/me), `logs.py` (surplus logs + photo upload to Supabase Storage), `marketplace.py` (listings + NGO claims), `admin.py` (NGO verification queue, subscribers, rescues), `billing.py` (plans, QR payment submit/approve)
 - `backend/supabase_schema.sql` — table definitions to run once in the Supabase SQL editor (`profiles`, `surplus_logs`, `marketplace_listings`, `claims`, `subscriptions`)
-- Hosting: needs a Python host regardless of payment choice (Supabase doesn't run custom FastAPI code) — Render recommended.
-- Not yet done: installing/testing deps against a real Supabase project, wiring the frontend to these endpoints, RLS policies beyond "enabled + service-role bypass".
+- Hosting: needs a Python host regardless of payment choice (Supabase doesn't run custom FastAPI code) — deployed on Render.
+- Admin signup requires `ADMIN_INVITE_CODE` (server-side checked) — without this, self-signup as admin would be wide open on a public API, unlike the old frontend-only mock where the "invite code" field was cosmetic.
+
+### Gotcha found via full integration testing (fixed)
+`supabase-py`'s shared client is a **module-level singleton** reused across every request. Calling `.auth.sign_in_with_password()` or `.auth.get_user()` **on that shared client mutates its session**, which then makes every subsequent `.table()` call in the whole running process execute as that logged-in user instead of the service role — silently breaking RLS-bypass server-wide (all tables have RLS enabled with zero policies, so this manifested as "0 rows" / random empty results for *other* requests too, not just the one that logged in). Fixed by doing login and token verification as **plain `httpx` REST calls** to Supabase's auth endpoints directly (`routers/auth.py` `/login`, `deps.py` `get_current_user`), never touching `.auth.*` methods on the shared `config.supabase` client. If any future endpoint is tempted to call `supabase.auth.sign_in_with_password`/`set_session`/`sign_up` (non-admin) on the shared client, don't — same bug will resurface.
+Also hit: `subscriptions` has two FKs to `profiles` (`restaurant_id`, `verified_by`), so PostgREST's auto-embed `profiles(...)` is ambiguous — must disambiguate as `profiles!subscriptions_restaurant_id_fkey(...)` (done in `admin.py` and `billing.py`).
+
+## Frontend (Session 4 — wired to real backend)
+- `frontend/src/lib/api.js` — fetch wrapper (`REACT_APP_BACKEND_URL` env var, default `http://localhost:8000`), holds the bearer token in localStorage, one method per backend endpoint.
+- `App.js`: real signup/login (Supabase-backed), session restored on page refresh via `/auth/me`, real surplus-log create + optional photo upload, real marketplace listing creation ("List surplus" button), real NGO claim + confirm-pickup, real admin verification/payments/subscribers/rescues (replaced the old hardcoded fake KPI numbers/growth chart with real counts from the API).
+- Removed the old "instant fake portal access" shortcuts (hero/pricing "Start free trial", footer login buttons, LoginModal's NGO/Admin "explore a demo" buttons) since they'd bypass auth entirely against a now-real backend — everything routes through real signup/login now.
+- Frontend fields not covered by the backend schema (dish category, waste reason, use-by date, freshness status, dietary type) are folded into the log's `notes` string rather than requiring a schema/DB migration — see the log table's `reason` column showing the combined string instead of separate "category · reason".
+- Verified end-to-end against the real Supabase project (signup/login for all 3 roles, admin-invite-code gate, log→listing→claim→pickup→rescue flow, verification approve, billing submit→pending→approve) before pushing; test data cleaned up afterward.
+- Still needed: set `REACT_APP_BACKEND_URL` in Vercel's env vars to the Render URL, then redeploy (env var changes don't trigger a rebuild by themselves).
 
 ## Code Architecture
-- `/app/frontend/src/App.js` — monolithic; contains all portals, components, mock data (not yet calling the backend)
+- `/app/frontend/src/App.js` — monolithic; all portals/components, now calling the real backend via `src/lib/api.js`
 - `/app/frontend/src/App.css` — full styles + animations (marquee, dark mode tokens)
 - `/app/backend/server.py` — wires up `auth`, `logs`, `marketplace`, `admin`, `billing` routers under `/api`

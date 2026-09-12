@@ -26,7 +26,7 @@ async def decide_verification(profile_id: str, body: VerificationDecision, admin
 
 @router.get("/subscribers")
 async def subscribers(_: dict = Depends(require_role("admin"))):
-    resp = supabase.table("subscriptions").select("*, profiles(org_name, city)").execute()
+    resp = supabase.table("subscriptions").select("*, profiles!subscriptions_restaurant_id_fkey(org_name, city)").execute()
     return resp.data
 
 
