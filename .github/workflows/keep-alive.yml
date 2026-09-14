@@ -1,0 +1,17 @@
+name: Keep backend warm
+
+# Render's free tier spins the service down after ~15 minutes of no traffic, and the first
+# request after that takes 30-60s to wake it back up (shows as "Load failed" in the browser).
+# This just pings the health endpoint often enough that it never gets the chance to sleep.
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping backend health endpoint
+        run: curl -sf --max-time 60 https://foodresque-1.onrender.com/api
