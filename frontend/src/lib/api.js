@@ -5,17 +5,39 @@ export const getToken = () => localStorage.getItem(TOKEN_KEY) || "";
 export const setToken = (token) => localStorage.setItem(TOKEN_KEY, token);
 export const clearToken = () => localStorage.removeItem(TOKEN_KEY);
 
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// The backend's free-tier host spins down after inactivity — the first request after that has
+// to wait for it to boot, which can take 30-60s and shows up as a connection-level fetch failure
+// (not a normal HTTP error response) rather than a slow-but-successful one. Retry a few times
+// with increasing delay before giving up, so a cold start looks like "took a moment" instead of
+// a broken login.
+const WAKE_RETRY_DELAYS_MS = [4000, 8000, 15000];
+
 async function request(path, { method = "GET", body, isForm = false } = {}) {
   const headers = {};
   const token = getToken();
   if (token) headers["Authorization"] = `Bearer ${token}`;
   if (body && !isForm) headers["Content-Type"] = "application/json";
 
-  const res = await fetch(`${API_BASE}${path}`, {
-    method,
-    headers,
-    body: body ? (isForm ? body : JSON.stringify(body)) : undefined,
-  });
+  let res;
+  let attempt = 0;
+  while (true) {
+    try {
+      res = await fetch(`${API_BASE}${path}`, {
+        method,
+        headers,
+        body: body ? (isForm ? body : JSON.stringify(body)) : undefined,
+      });
+      break;
+    } catch (err) {
+      if (attempt >= WAKE_RETRY_DELAYS_MS.length) {
+        throw new Error("Couldn't reach the server — it may be waking up from sleep, try again in a moment.");
+      }
+      await sleep(WAKE_RETRY_DELAYS_MS[attempt]);
+      attempt += 1;
+    }
+  }
 
   let data = null;
   try {
