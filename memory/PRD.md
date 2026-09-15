@@ -30,14 +30,12 @@ Build a responsive, interactive web frontend for "Wastelytics" — a subscriptio
   - Hindi copy extended for NGO nav labels (Live listings, Map, Verification status) and shared strings
 
 ## Prioritized Backlog
-### P1
-- Extend Hindi translation to inline strings inside RestaurantTools, InventoryWatch, ExpiryWatch, WastePlaybook, AdminPage, LogPage form section titles
-- Localize NGO filter chip labels using `t.filterHigh/filterVeg/filterCold`
-- Dashboard's "Waste by day"/"Waste by category" charts (`weekData`/`categoryData`) are still hardcoded fake numbers, unlike the rest of the app — should be computed from real logs
 ### P2
 - Split monolithic `App.js` into `pages/` and `components/` folders
 - Listing "priority"/"dietary"/"storage" badges are cosmetic placeholders (`"—"`/`"Medium"`) since the backend schema doesn't carry them — either add real columns or drop the badges
 - "Edit listing" button on marketplace cards is still a toast-only stub
+- About/Terms pages are intentionally blank placeholders (kicker + "content coming soon") — a teammate is designing the real content separately; swap in once ready
+- Toast messages (`toast.success`/`toast.error` calls) are still English-only by design (scoped out of the Hindi translation pass as transient/lower-priority) — revisit if that turns out to matter
 
 ## Payment approach (decided)
 No payment gateway (Razorpay/Stripe explicitly excluded). Restaurants scan a static QR code (own UPI/bank QR) and submit a reference note; an admin manually approves/rejects via the billing endpoints. See `backend/routers/billing.py`.
@@ -63,6 +61,14 @@ Also hit: `subscriptions` has two FKs to `profiles` (`restaurant_id`, `verified_
 - Frontend fields not covered by the backend schema (dish category, waste reason, use-by date, freshness status, dietary type) are folded into the log's `notes` string rather than requiring a schema/DB migration — see the log table's `reason` column showing the combined string instead of separate "category · reason".
 - Verified end-to-end against the real Supabase project (signup/login for all 3 roles, admin-invite-code gate, log→listing→claim→pickup→rescue flow, verification approve, billing submit→pending→approve) before pushing; test data cleaned up afterward.
 - Still needed: set `REACT_APP_BACKEND_URL` in Vercel's env vars to the Render URL, then redeploy (env var changes don't trigger a rebuild by themselves).
+- Render free tier spins down after ~15 min idle; first request after that takes 30-60s and can surface as a raw "Load failed" in the browser. Mitigated two ways: `.github/workflows/keep-alive.yml` pings `/api` every 10 min, and `lib/api.js`'s `request()` retries up to 3x (4s/8s/15s backoff) on a network-level fetch failure before giving up.
+- Dashboard greeting is time-of-day aware (`getGreeting()` in App.js), computed from `Asia/Kolkata` specifically regardless of the visitor's device timezone.
+
+## Frontend (Session 5 — About/Terms placeholders, signup role dropdown, full Hindi translation)
+- `AboutSection`/`TermsModal` replaced with blank placeholders (kicker + "content coming soon") — real design coming from a teammate separately, not built by this agent.
+- `SignupModal` now has an internal role dropdown (`t.iAmA` + `<select>`) instead of being hardwired per-button to a fixed role/copy set — one unified interactive form. `LoginModal`'s three separate per-role signup links collapsed into one generic "Sign up" link.
+- Hindi translation: the landing page had **zero** `t.xxx` wiring despite a working toggle — every string was hardcoded English. That was almost certainly the actual "Hindi doesn't work" complaint, not a toggle bug. Added ~316 translation keys (`copy.en`/`copy.hi`, both same key count, verified via a Node script cross-check of every `t.xxx` reference in the file) covering: full landing page, all portal pages, RestaurantTools/InventoryWatch/ExpiryWatch/WastePlaybook, auth modals, sidebar/topbar chrome. `<select>` option lists are now `[englishValue, translatedLabel]` pairs so the displayed language never changes what's actually stored/sent to the backend.
+- Deliberately NOT translated: toast messages (transient, high volume, lower priority — flagged in PRD backlog), and data values themselves (partner names, listing priority levels, etc.).
 
 ## Code Architecture
 - `/app/frontend/src/App.js` — monolithic; all portals/components, now calling the real backend via `src/lib/api.js`
