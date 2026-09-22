@@ -28,6 +28,11 @@
 .queue-row small a:hover{text-decoration:underline}
 .strip-location a{color:inherit;text-decoration:underline;margin-left:6px}
 .text-button.inline{display:inline-flex;padding:0;font-weight:700;color:var(--green);text-decoration:underline}
+.signin-menu{position:relative}
+.signin-menu-backdrop{position:fixed;inset:0;z-index:15}
+.signin-menu-panel{position:absolute;top:100%;right:0;margin-top:8px;background:var(--panel);border:1px solid var(--line);border-radius:6px;box-shadow:0 12px 30px #10251e22;min-width:160px;padding:6px;display:grid;gap:2px;z-index:20}
+.signin-menu-panel button{text-align:left;background:transparent;padding:9px 10px;font-size:12.5px;font-weight:600;color:var(--ink);border-radius:4px}
+.signin-menu-panel button:hover{background:var(--mint);color:var(--green)}
 
 /* ==== About page (founder story) ==== */
 .about-page-inner{max-width:700px;margin:0 auto;padding:56px 24px 110px}
