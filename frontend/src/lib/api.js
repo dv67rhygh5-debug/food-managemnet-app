@@ -1,5 +1,5 @@
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "http://localhost:8000";
-const TOKEN_KEY = "wastelytics-token";
+const TOKEN_KEY = "fedd-token";
 
 export const getToken = () => localStorage.getItem(TOKEN_KEY) || "";
 export const setToken = (token) => localStorage.setItem(TOKEN_KEY, token);

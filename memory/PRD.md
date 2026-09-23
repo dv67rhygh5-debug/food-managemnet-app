@@ -1,7 +1,9 @@
-# Wastelytics — PRD
+# Fedd — PRD
+
+Renamed from "Wastelytics" to "Fedd" (Session 6) to match the fedd.in domain. Brand name changed throughout the app, but the original scope below is otherwise unchanged.
 
 ## Original Problem Statement
-Build a responsive, interactive web frontend for "Wastelytics" — a subscription-based analytics platform helping restaurants track, understand, and reduce food waste, with an integrated NGO marketplace for surplus food redistribution as a secondary feature. Clean B2B SaaS aesthetic, dark mode, English/Hindi toggle, three portals (Restaurant / NGO / Admin), and rich mocked workflows in local React state.
+Build a responsive, interactive web frontend for "Wastelytics" (now "Fedd") — a subscription-based analytics platform helping restaurants track, understand, and reduce food waste, with an integrated NGO marketplace for surplus food redistribution as a secondary feature. Clean B2B SaaS aesthetic, dark mode, English/Hindi toggle, three portals (Restaurant / NGO / Admin), and rich mocked workflows in local React state.
 
 ## User Personas
 - **Restaurant owner/manager** (primary): logs surplus, reviews insights, acts on recommendations
@@ -69,6 +71,16 @@ Also hit: `subscriptions` has two FKs to `profiles` (`restaurant_id`, `verified_
 - `SignupModal` now has an internal role dropdown (`t.iAmA` + `<select>`) instead of being hardwired per-button to a fixed role/copy set — one unified interactive form. `LoginModal`'s three separate per-role signup links collapsed into one generic "Sign up" link.
 - Hindi translation: the landing page had **zero** `t.xxx` wiring despite a working toggle — every string was hardcoded English. That was almost certainly the actual "Hindi doesn't work" complaint, not a toggle bug. Added ~316 translation keys (`copy.en`/`copy.hi`, both same key count, verified via a Node script cross-check of every `t.xxx` reference in the file) covering: full landing page, all portal pages, RestaurantTools/InventoryWatch/ExpiryWatch/WastePlaybook, auth modals, sidebar/topbar chrome. `<select>` option lists are now `[englishValue, translatedLabel]` pairs so the displayed language never changes what's actually stored/sent to the backend.
 - Deliberately NOT translated: toast messages (transient, high volume, lower priority — flagged in PRD backlog), and data values themselves (partner names, listing priority levels, etc.).
+
+## Session 6 — rebrand + remove all fabricated/demo data
+- Renamed "Wastelytics" → "Fedd" everywhere: brand text, page title/meta (`index.html`, which was still the unedited Emergent scaffold default this whole time — never actually said "Wastelytics" in the browser tab), founder story, Terms & Conditions, backend API title, localStorage key prefix, CSV export filename, admin invite code placeholder hint.
+- Also removed the Emergent PostHog analytics script from `index.html` — it was sending real visitor session data to Emergent's own PostHog project (`ap.emergent.sh`) this whole time, orphaned and inappropriate now that the app is fully independent.
+- Support email → `feddsupport@gmail.com` (Terms & Conditions contact section).
+- Removed all fabricated marketing/demo data since this is now a real, pre-launch business with zero real customers: deleted `PartnerMarquee` (fake scrolling logo wall), `PartnerNetwork` (fake customer testimonial cards with invented impact stats), the hero's fake "₹24,680 saved / 18.4% less waste" stat ticket + fake "RM ST AK" social-proof avatars, `RestaurantTools`' fake "12% below peers" benchmark card and fake multi-outlet selector (Andheri West/Bandra East/Powai), `NgoMapPage`'s fabricated per-listing distance/time numbers, and one of the three `ImpactFacts` stats that was a fabricated "sample kitchen... demo estimate" (kept the two properly-sourced general industry facts — UNEP, industry estimate — since those aren't company-specific claims).
+- `InventoryWatch` and `ExpiryWatch` had zero backend (always local-only, seeded with fake Paneer/Basmati rice/Garlic naan items) — now start genuinely empty with real empty-state messaging; InventoryWatch also got a real (if still local-only) "add item" form so it's not just a dead empty box.
+- `WastePlaybook` had a hardcoded `|| ["Paneer tikka", 18]` fallback that showed a fake recommendation to brand-new accounts with zero real logs — now shows a genuine empty state instead.
+- Fixed landing page pricing (was hardcoded ₹100/₹200, didn't match the real backend `PLANS` in `billing.py` which are ₹999/₹2,499) — now consistent.
+- Cleaned up ~22 translation keys that went dead from these removals (verified via the same en/hi key-parity script used throughout this project).
 
 ## Code Architecture
 - `/app/frontend/src/App.js` — monolithic; all portals/components, now calling the real backend via `src/lib/api.js`
