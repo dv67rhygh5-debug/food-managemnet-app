@@ -21,6 +21,11 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class VerifyLoginOtpRequest(BaseModel):
+    email: EmailStr
+    token: str
+
+
 class SurplusLogCreate(BaseModel):
     food_type: str
     quantity_kg: float

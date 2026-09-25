@@ -66,6 +66,7 @@ export const api = {
   auth: {
     signup: (payload) => request("/api/auth/signup", { method: "POST", body: payload }),
     login: (email, password) => request("/api/auth/login", { method: "POST", body: { email, password } }),
+    verifyOtp: (email, token) => request("/api/auth/verify-otp", { method: "POST", body: { email, token } }),
     me: () => request("/api/auth/me"),
   },
   logs: {
@@ -90,6 +91,7 @@ export const api = {
     verificationQueue: () => request("/api/admin/verification-queue"),
     decideVerification: (profileId, approve) =>
       request(`/api/admin/verification-queue/${profileId}`, { method: "POST", body: { approve } }),
+    restaurants: () => request("/api/admin/restaurants"),
     subscribers: () => request("/api/admin/subscribers"),
     rescues: () => request("/api/admin/rescues"),
   },
@@ -98,6 +100,11 @@ export const api = {
     me: () => request("/api/billing/me"),
     submit: (plan, referenceNote) =>
       request("/api/billing/submit", { method: "POST", body: { plan, reference_note: referenceNote } }),
+    uploadProof: (file) => {
+      const form = new FormData();
+      form.append("file", file);
+      return request("/api/billing/proof", { method: "POST", body: form, isForm: true });
+    },
     pending: () => request("/api/billing/pending"),
     decide: (subscriptionId, approve) =>
       request(`/api/billing/${subscriptionId}/decision`, { method: "POST", body: { approve } }),

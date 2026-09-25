@@ -51,9 +51,14 @@ create table subscriptions (
   plan text not null default 'basic' check (plan in ('basic', 'pro')),
   status text not null default 'inactive' check (status in ('inactive', 'pending_verification', 'active')),
   payment_note text,
+  payment_proof_url text,
   verified_by uuid references profiles (id),
   created_at timestamptz not null default now()
 );
+
+-- Migration: if `subscriptions` already exists from before the payment-screenshot feature,
+-- run this once in the SQL editor instead of the create table above:
+-- alter table subscriptions add column payment_proof_url text;
 
 -- Row Level Security: the backend uses the service-role key (bypasses RLS) for all access,
 -- so enabling RLS here just blocks any direct client-side access via the anon/public key.

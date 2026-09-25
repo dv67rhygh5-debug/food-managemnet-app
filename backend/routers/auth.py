@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from config import supabase, ADMIN_INVITE_CODE, SUPABASE_URL, SUPABASE_ANON_KEY
 from deps import get_current_user
-from schemas import LoginRequest, SignupRequest
+from schemas import LoginRequest, SignupRequest, VerifyLoginOtpRequest
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -43,6 +43,8 @@ async def signup(body: SignupRequest):
 
 @router.post("/login")
 async def login(body: LoginRequest):
+    # Step 1 of 2: check the password, but don't hand back a session yet — a valid password
+    # only earns the right to receive an email OTP code, which step 2 (/verify-otp) checks.
     # A plain REST call, deliberately not `supabase.auth.sign_in_with_password()` on the shared
     # service-role client — that call mutates the shared client's session in supabase-py, which
     # then makes every subsequent `.table()` call across ALL requests in this process run as that
@@ -59,6 +61,39 @@ async def login(body: LoginRequest):
 
     if resp.status_code != 200:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
+
+    try:
+        otp_resp = httpx.post(
+            f"{SUPABASE_URL}/auth/v1/otp",
+            headers={"apikey": SUPABASE_ANON_KEY, "Content-Type": "application/json"},
+            json={"email": body.email, "create_user": False},
+            timeout=10,
+        )
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Could not send verification code")
+
+    if otp_resp.status_code >= 400:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Could not send verification code")
+
+    return {"otp_required": True, "email": body.email}
+
+
+@router.post("/verify-otp")
+async def verify_login_otp(body: VerifyLoginOtpRequest):
+    # Step 2 of 2: exchange the emailed code for a real session. Same "raw REST call, not the
+    # shared SDK client" reasoning as /login above applies here too.
+    try:
+        resp = httpx.post(
+            f"{SUPABASE_URL}/auth/v1/verify",
+            headers={"apikey": SUPABASE_ANON_KEY, "Content-Type": "application/json"},
+            json={"type": "email", "email": body.email, "token": body.token},
+            timeout=10,
+        )
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired code")
+
+    if resp.status_code != 200:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired code")
 
     data = resp.json()
     return {

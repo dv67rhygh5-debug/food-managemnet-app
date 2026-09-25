@@ -24,6 +24,18 @@ async def decide_verification(profile_id: str, body: VerificationDecision, admin
     return resp.data[0] if body.approve else {"deleted": profile_id}
 
 
+@router.get("/restaurants")
+async def restaurants(_: dict = Depends(require_role("admin"))):
+    resp = (
+        supabase.table("profiles")
+        .select("id, org_name, city, created_at")
+        .eq("role", "restaurant")
+        .order("created_at")
+        .execute()
+    )
+    return resp.data
+
+
 @router.get("/subscribers")
 async def subscribers(_: dict = Depends(require_role("admin"))):
     resp = supabase.table("subscriptions").select("*, profiles!subscriptions_restaurant_id_fkey(org_name, city)").execute()

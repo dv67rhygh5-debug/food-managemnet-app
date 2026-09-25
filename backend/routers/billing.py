@@ -1,14 +1,16 @@
-from fastapi import APIRouter, Depends, HTTPException
+import uuid
 
-from config import supabase, QR_CODE_IMAGE_URL, PAYMENT_UPI_ID
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+
+from config import supabase, SUPABASE_STORAGE_BUCKET, QR_CODE_IMAGE_URL, PAYMENT_UPI_ID
 from deps import require_role
 from schemas import PaymentDecision, PaymentSubmission
 
 router = APIRouter(prefix="/billing", tags=["billing"])
 
 PLANS = [
-    {"id": "basic", "name": "Basic", "price_inr": 999},
-    {"id": "pro", "name": "Pro", "price_inr": 2499},
+    {"id": "basic", "name": "Basic", "price_inr": 100},
+    {"id": "pro", "name": "Pro", "price_inr": 200},
 ]
 
 
@@ -32,6 +34,26 @@ async def submit_payment(body: PaymentSubmission, profile: dict = Depends(requir
         "payment_note": body.reference_note,
     }
     resp = supabase.table("subscriptions").upsert(payload, on_conflict="restaurant_id").execute()
+    return resp.data[0]
+
+
+@router.post("/proof")
+async def upload_payment_proof(
+    file: UploadFile = File(...), profile: dict = Depends(require_role("restaurant"))
+):
+    existing = supabase.table("subscriptions").select("id").eq("restaurant_id", profile["id"]).execute()
+    if not existing.data:
+        raise HTTPException(status_code=404, detail="Submit a payment reference first")
+    sub_id = existing.data[0]["id"]
+
+    ext = (file.filename or "proof").split(".")[-1]
+    path = f"{profile['id']}/{sub_id}/{uuid.uuid4()}.{ext}"
+    content = await file.read()
+
+    supabase.storage.from_(SUPABASE_STORAGE_BUCKET).upload(path, content, {"content-type": file.content_type})
+    public_url = supabase.storage.from_(SUPABASE_STORAGE_BUCKET).get_public_url(path)
+
+    resp = supabase.table("subscriptions").update({"payment_proof_url": public_url}).eq("id", sub_id).execute()
     return resp.data[0]
 
 
