@@ -86,3 +86,12 @@ Also hit: `subscriptions` has two FKs to `profiles` (`restaurant_id`, `verified_
 - `/app/frontend/src/App.js` — monolithic; all portals/components, now calling the real backend via `src/lib/api.js`
 - `/app/frontend/src/App.css` — full styles + animations (marquee, dark mode tokens)
 - `/app/backend/server.py` — wires up `auth`, `logs`, `marketplace`, `admin`, `billing` routers under `/api`
+
+## Session 7 — QR payment details, "Have you paid?" tick boxes, private screenshots
+- Payment QR ships as `frontend/public/payment-qr.png` (served by Vercel); backend `/billing/plans` returns `qr_code_image_url=/payment-qr.png`, `upi_id=6398520122@fam`, `payee_name`. Billing page shows amount, payee, copy-UPI and an "Open in UPI app" deep link (mobile).
+- "I've paid" dialog now asks **Yes, I have paid / Not paid yet** (tick boxes). Only "Yes" reveals the UTR + screenshot fields; backend `/billing/submit` also requires `paid: true`. Duplicate submissions while one is pending → 409.
+- Screenshots moved to a **private** `payment-proofs` bucket (`payment_proof_path`); admins get 1-hour signed URLs in `/billing/pending`. Previously they were public URLs.
+- Admin can reject with a reason (shown to the restaurant as `rejected`); approval sets `current_period_end` = +30 days (renewals stack); `/billing/me` reports `expired` after that.
+- Fixes: unverified NGOs can no longer claim; claims are race-safe (conditional update); closed claims can't be reopened; rejecting an NGO deletes its auth user so the email can re-apply; `get_current_user` no longer 500s when a profile is missing.
+- **Requires** running `backend/supabase_migration_002.sql` on the live Supabase project, and new env vars on Render: `PAYMENT_PAYEE_NAME`, `SUPABASE_PAYMENT_BUCKET` (see `render.yaml`).
+- Subscription is still "optional / same dashboard" as decided in Session 6 — plan-based gating was proposed but not applied.

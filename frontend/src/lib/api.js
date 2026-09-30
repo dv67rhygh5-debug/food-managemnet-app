@@ -98,15 +98,16 @@ export const api = {
   billing: {
     plans: () => request("/api/billing/plans"),
     me: () => request("/api/billing/me"),
+    // paid: the "Yes, I have paid" tick box — the backend refuses submissions without it.
     submit: (plan, referenceNote) =>
-      request("/api/billing/submit", { method: "POST", body: { plan, reference_note: referenceNote } }),
+      request("/api/billing/submit", { method: "POST", body: { plan, reference_note: referenceNote, paid: true } }),
     uploadProof: (file) => {
       const form = new FormData();
       form.append("file", file);
       return request("/api/billing/proof", { method: "POST", body: form, isForm: true });
     },
     pending: () => request("/api/billing/pending"),
-    decide: (subscriptionId, approve) =>
-      request(`/api/billing/${subscriptionId}/decision`, { method: "POST", body: { approve } }),
+    decide: (subscriptionId, approve, reason) =>
+      request(`/api/billing/${subscriptionId}/decision`, { method: "POST", body: { approve, reason } }),
   },
 };

@@ -75,3 +75,9 @@
 @media(max-width:900px){.terms-layout{grid-template-columns:1fr}.terms-toc-desktop{display:none}.terms-toc-mobile{display:block}}
 @media(max-width:700px){.terms-page-inner{padding:36px 20px 80px}.terms-page-inner>h1{font-size:28px}}
 .form-grid label small{font-size:10px;color:var(--muted);font-weight:400}
+/* QR payment card + "have you paid?" tick boxes */
+.qr-pay-card .payment-qr{display:block;width:100%;max-width:240px;aspect-ratio:1;object-fit:cover;object-position:50% 45%;border-radius:10px;background:#111;margin:12px 0}
+.qr-pay-card p{font-size:12px;margin:6px 0}.qr-amount b{font:700 18px var(--display)}
+.upi-app-link{display:inline-flex;margin:6px 0 10px}@media(min-width:900px){.upi-app-link{display:none!important}}
+.paid-choice{display:flex;gap:10px;flex-wrap:wrap;margin:6px 0 12px}.paid-choice label{flex-direction:row!important;display:inline-flex;align-items:center;gap:8px;padding:11px 14px;border:1px solid var(--line);border-radius:5px;font-size:13px;font-weight:700;cursor:pointer;user-select:none;color:var(--muted)}.paid-choice input{position:absolute;opacity:0;pointer-events:none}.paid-choice label svg{width:18px;height:18px;padding:2px;border:1.5px solid var(--line);border-radius:3px;color:transparent}.paid-choice label.on{border-color:var(--green);color:var(--green);background:var(--mint)}.paid-choice label.on svg{background:var(--green);border-color:var(--green);color:#fff}.paid-choice label.on.no{border-color:var(--danger);color:var(--danger);background:#fbeae7}.paid-choice label.on.no svg{background:var(--danger);border-color:var(--danger)}.paid-choice label:focus-within{outline:2px solid var(--green);outline-offset:2px}
+.paid-hint{font-size:12px;color:var(--muted);line-height:1.55;margin:0 0 8px}

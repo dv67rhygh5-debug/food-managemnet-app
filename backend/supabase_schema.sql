@@ -49,16 +49,21 @@ create table subscriptions (
   id uuid primary key default gen_random_uuid(),
   restaurant_id uuid not null unique references profiles (id) on delete cascade,
   plan text not null default 'basic' check (plan in ('basic', 'pro')),
-  status text not null default 'inactive' check (status in ('inactive', 'pending_verification', 'active')),
+  status text not null default 'inactive' check (status in ('inactive', 'pending_verification', 'active', 'rejected')),
   payment_note text,
   payment_proof_url text,
+  payment_proof_path text,
+  paid_confirmed boolean not null default false,
+  amount_inr integer,
+  submitted_at timestamptz,
   verified_by uuid references profiles (id),
+  verified_at timestamptz,
+  current_period_end timestamptz,
+  rejection_reason text,
   created_at timestamptz not null default now()
 );
 
--- Migration: if `subscriptions` already exists from before the payment-screenshot feature,
--- run this once in the SQL editor instead of the create table above:
--- alter table subscriptions add column payment_proof_url text;
+-- Existing projects: run supabase_migration_002.sql instead of re-creating tables.
 
 -- Row Level Security: the backend uses the service-role key (bypasses RLS) for all access,
 -- so enabling RLS here just blocks any direct client-side access via the anon/public key.

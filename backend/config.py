@@ -14,8 +14,13 @@ SUPABASE_STORAGE_BUCKET = os.environ.get("SUPABASE_STORAGE_BUCKET", "surplus-pho
 
 CORS_ORIGINS = os.environ.get("CORS_ORIGINS", "*").split(",")
 
-QR_CODE_IMAGE_URL = os.environ.get("QR_CODE_IMAGE_URL", "")
+# QR_CODE_IMAGE_URL: absolute URL, or a path on the frontend site (the QR ships in frontend/public/).
+QR_CODE_IMAGE_URL = os.environ.get("QR_CODE_IMAGE_URL", "/payment-qr.png")
 PAYMENT_UPI_ID = os.environ.get("PAYMENT_UPI_ID", "")
+PAYMENT_PAYEE_NAME = os.environ.get("PAYMENT_PAYEE_NAME", "")
+# Private bucket for payment screenshots — admins view them through short-lived signed URLs.
+SUPABASE_PAYMENT_BUCKET = os.environ.get("SUPABASE_PAYMENT_BUCKET", "payment-proofs")
+SUBSCRIPTION_DAYS = int(os.environ.get("SUBSCRIPTION_DAYS", "30"))
 
 # Required to self-signup as admin — keeps the admin role from being open to anyone who hits the API.
 ADMIN_INVITE_CODE = os.environ.get("ADMIN_INVITE_CODE", "")

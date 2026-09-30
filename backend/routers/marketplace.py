@@ -43,16 +43,23 @@ async def list_listings(profile: dict = Depends(get_current_user)):
 
 @router.post("/claims")
 async def create_claim(body: ClaimCreate, profile: dict = Depends(require_role("ngo"))):
-    listing = supabase.table("marketplace_listings").select("*").eq("id", body.listing_id).execute()
-    if not listing.data:
-        raise HTTPException(status_code=404, detail="Listing not found")
-    if listing.data[0]["status"] != "available":
+    if not profile.get("verified"):
+        raise HTTPException(status_code=403, detail="Your NGO is awaiting verification by the Fedd team")
+
+    # Conditional update so two NGOs can't claim the same listing at the same moment.
+    taken = (
+        supabase.table("marketplace_listings")
+        .update({"status": "claimed"})
+        .eq("id", body.listing_id)
+        .eq("status", "available")
+        .execute()
+    )
+    if not taken.data:
         raise HTTPException(status_code=400, detail="Listing is no longer available")
 
     claim = supabase.table("claims").insert(
         {"listing_id": body.listing_id, "ngo_id": profile["id"], "status": "pending"}
     ).execute()
-    supabase.table("marketplace_listings").update({"status": "claimed"}).eq("id", body.listing_id).execute()
     return claim.data[0]
 
 
@@ -73,6 +80,8 @@ async def update_claim(claim_id: str, body: ClaimStatusUpdate, profile: dict = D
     existing = supabase.table("claims").select("*").eq("id", claim_id).eq("ngo_id", profile["id"]).execute()
     if not existing.data:
         raise HTTPException(status_code=404, detail="Claim not found")
+    if existing.data[0]["status"] in ("picked_up", "cancelled"):
+        raise HTTPException(status_code=400, detail="This claim is already closed")
 
     resp = supabase.table("claims").update({"status": body.status}).eq("id", claim_id).execute()
 

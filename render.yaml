@@ -19,9 +19,14 @@ services:
         value: surplus-photos
       - key: CORS_ORIGINS
         sync: false
+      # QR image ships in frontend/public and is served by the frontend host (Vercel)
       - key: QR_CODE_IMAGE_URL
-        sync: false
+        value: /payment-qr.png
       - key: PAYMENT_UPI_ID
-        sync: false
+        value: 6398520122@fam
+      - key: PAYMENT_PAYEE_NAME
+        value: yajas
+      - key: SUPABASE_PAYMENT_BUCKET
+        value: payment-proofs
       - key: ADMIN_INVITE_CODE
         sync: false

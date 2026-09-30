@@ -30,8 +30,8 @@ async def get_current_user(creds: HTTPAuthorizationCredentials = Depends(bearer_
     if not user or not user.get("id"):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token")
 
-    profile_resp = supabase.table("profiles").select("*").eq("id", user["id"]).single().execute()
-    profile = profile_resp.data
+    profile_resp = supabase.table("profiles").select("*").eq("id", user["id"]).execute()
+    profile = profile_resp.data[0] if profile_resp.data else None
     if not profile:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Profile not found for user")
 

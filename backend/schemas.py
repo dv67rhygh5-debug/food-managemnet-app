@@ -55,7 +55,9 @@ class VerificationDecision(BaseModel):
 class PaymentSubmission(BaseModel):
     plan: Literal["basic", "pro"]
     reference_note: str
+    paid: bool  # the "Yes, I have paid" tick box — must be true to submit
 
 
 class PaymentDecision(BaseModel):
     approve: bool
+    reason: Optional[str] = None

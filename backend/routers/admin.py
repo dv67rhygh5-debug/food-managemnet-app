@@ -15,13 +15,16 @@ async def verification_queue(_: dict = Depends(require_role("admin"))):
 
 @router.post("/verification-queue/{profile_id}")
 async def decide_verification(profile_id: str, body: VerificationDecision, admin: dict = Depends(require_role("admin"))):
+    found = supabase.table("profiles").select("id").eq("id", profile_id).eq("role", "ngo").execute()
+    if not found.data:
+        raise HTTPException(status_code=404, detail="Profile not found")
     if body.approve:
         resp = supabase.table("profiles").update({"verified": True}).eq("id", profile_id).execute()
-    else:
-        resp = supabase.table("profiles").delete().eq("id", profile_id).execute()
-    if not resp.data:
-        raise HTTPException(status_code=404, detail="Profile not found")
-    return resp.data[0] if body.approve else {"deleted": profile_id}
+        return resp.data[0]
+    # Deleting only the profile would leave an auth user that can neither log in nor re-register.
+    # Deleting the auth user cascades to the profile and frees the email for a fresh application.
+    supabase.auth.admin.delete_user(profile_id)
+    return {"deleted": profile_id}
 
 
 @router.get("/restaurants")
