@@ -5,6 +5,10 @@ export const getToken = () => localStorage.getItem(TOKEN_KEY) || "";
 export const setToken = (token) => localStorage.setItem(TOKEN_KEY, token);
 export const clearToken = () => localStorage.removeItem(TOKEN_KEY);
 
+// A production build without REACT_APP_BACKEND_URL points every visitor at their own computer.
+const MISSING_BACKEND_URL =
+  !process.env.REACT_APP_BACKEND_URL && typeof window !== "undefined" && !["localhost", "127.0.0.1"].includes(window.location.hostname);
+
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // The backend's free-tier host spins down after inactivity — the first request after that has
@@ -15,6 +19,9 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const WAKE_RETRY_DELAYS_MS = [4000, 8000, 15000];
 
 async function request(path, { method = "GET", body, isForm = false } = {}) {
+  if (MISSING_BACKEND_URL) {
+    throw new Error("This site isn't connected to the Fedd server yet (REACT_APP_BACKEND_URL is not set on Vercel).");
+  }
   const headers = {};
   const token = getToken();
   if (token) headers["Authorization"] = `Bearer ${token}`;
