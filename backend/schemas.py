@@ -61,3 +61,35 @@ class PaymentSubmission(BaseModel):
 class PaymentDecision(BaseModel):
     approve: bool
     reason: Optional[str] = None
+
+
+class ProfileUpdate(BaseModel):
+    org_name: Optional[str] = None
+    city: Optional[str] = None
+    phone: Optional[str] = None
+    verified: Optional[bool] = None
+
+
+class LogUpdate(BaseModel):
+    food_type: Optional[str] = None
+    quantity_kg: Optional[float] = None
+    notes: Optional[str] = None
+
+
+class AdminClaimUpdate(BaseModel):
+    status: Literal["pending", "confirmed", "picked_up", "cancelled"]
+
+
+class AdminSubscriptionUpdate(BaseModel):
+    plan: Literal["basic", "pro"]
+    status: Literal["inactive", "pending_verification", "active", "rejected"]
+    current_period_end: Optional[datetime] = None
+
+
+class ChatMessage(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str
+
+
+class AssistantRequest(BaseModel):
+    messages: list[ChatMessage]

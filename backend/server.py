@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 
 from config import CORS_ORIGINS
-from routers import admin, auth, billing, logs, marketplace
+from routers import admin, ai, auth, billing, logs, marketplace
 
 app = FastAPI(title="Fedd API")
 
@@ -13,6 +13,7 @@ app.include_router(logs.router, prefix="/api")
 app.include_router(marketplace.router, prefix="/api")
 app.include_router(admin.router, prefix="/api")
 app.include_router(billing.router, prefix="/api")
+app.include_router(ai.router, prefix="/api")
 
 app.add_middleware(
     CORSMiddleware,

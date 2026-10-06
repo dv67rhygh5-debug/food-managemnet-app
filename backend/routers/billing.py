@@ -40,6 +40,25 @@ def _signed_proof_url(path):
         return None
 
 
+def effective_subscription(restaurant_id):
+    """The restaurant's subscription row with an `active` status downgraded to `expired` once its period ends."""
+    resp = supabase.table("subscriptions").select("*").eq("restaurant_id", restaurant_id).execute()
+    if not resp.data:
+        return {"status": "inactive", "plan": None}
+    sub = resp.data[0]
+    sub.pop("payment_proof_path", None)
+    period_end = _parse(sub.get("current_period_end"))
+    if sub["status"] == "active" and period_end and period_end <= datetime.now(timezone.utc):
+        sub["status"] = "expired"
+    return sub
+
+
+def active_plan(restaurant_id):
+    """'basic', 'pro', or None when there's no paid, unexpired subscription."""
+    sub = effective_subscription(restaurant_id)
+    return sub.get("plan") if sub["status"] == "active" else None
+
+
 @router.get("/plans")
 async def get_plans():
     return {
@@ -52,15 +71,7 @@ async def get_plans():
 
 @router.get("/me")
 async def my_subscription(profile: dict = Depends(require_role("restaurant"))):
-    resp = supabase.table("subscriptions").select("*").eq("restaurant_id", profile["id"]).execute()
-    if not resp.data:
-        return {"status": "inactive", "plan": None}
-    sub = resp.data[0]
-    sub.pop("payment_proof_path", None)
-    period_end = _parse(sub.get("current_period_end"))
-    if sub["status"] == "active" and period_end and period_end <= datetime.now(timezone.utc):
-        sub["status"] = "expired"
-    return sub
+    return effective_subscription(profile["id"])
 
 
 @router.post("/submit")

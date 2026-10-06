@@ -23,7 +23,15 @@ SUPABASE_PAYMENT_BUCKET = os.environ.get("SUPABASE_PAYMENT_BUCKET", "payment-pro
 SUBSCRIPTION_DAYS = int(os.environ.get("SUBSCRIPTION_DAYS", "30"))
 
 # Required to self-signup as admin — keeps the admin role from being open to anyone who hits the API.
-ADMIN_INVITE_CODE = os.environ.get("ADMIN_INVITE_CODE", "")
+ADMIN_INVITE_CODE = os.environ.get("ADMIN_INVITE_CODE", "").strip()
+
+# Email-OTP second step at login. Off by default: it needs working email delivery from Supabase
+# (Authentication > SMTP Settings). With it off, a correct email + password logs straight in.
+LOGIN_OTP_ENABLED = os.environ.get("LOGIN_OTP_ENABLED", "false").strip().lower() in ("1", "true", "yes")
+
+# Groq powers the Pro plan's AI kitchen assistant. Server-side only — never expose to the frontend.
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "").strip()
+GROQ_MODEL = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile")
 
 # Service-role client: server-side only, bypasses RLS. Used for all DB writes/reads here.
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)

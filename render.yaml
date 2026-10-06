@@ -30,3 +30,11 @@ services:
         value: payment-proofs
       - key: ADMIN_INVITE_CODE
         sync: false
+      # Pro plan AI assistant — paste your Groq key in the Render dashboard
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GROQ_MODEL
+        value: llama-3.3-70b-versatile
+      # Turn on only after Supabase email (Auth > SMTP Settings) is delivering OTP emails
+      - key: LOGIN_OTP_ENABLED
+        value: "false"
