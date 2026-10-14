@@ -74,6 +74,8 @@ export const api = {
     signup: (payload) => request("/api/auth/signup", { method: "POST", body: payload }),
     login: (email, password) => request("/api/auth/login", { method: "POST", body: { email, password } }),
     verifyOtp: (email, token) => request("/api/auth/verify-otp", { method: "POST", body: { email, token } }),
+    forgotPassword: (email, redirectTo) => request("/api/auth/forgot-password", { method: "POST", body: { email, redirect_to: redirectTo } }),
+    resetPassword: (accessToken, password) => request("/api/auth/reset-password", { method: "POST", body: { access_token: accessToken, password } }),
     me: () => request("/api/auth/me"),
   },
   logs: {

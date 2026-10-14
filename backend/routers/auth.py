@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from config import supabase, ADMIN_INVITE_CODE, LOGIN_OTP_ENABLED, SUPABASE_URL, SUPABASE_ANON_KEY
 from deps import get_current_user
-from schemas import LoginRequest, SignupRequest, VerifyLoginOtpRequest
+from schemas import ForgotPasswordRequest, LoginRequest, ResetPasswordRequest, SignupRequest, VerifyLoginOtpRequest
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -118,6 +118,74 @@ async def verify_login_otp(body: VerifyLoginOtpRequest):
         "refresh_token": data["refresh_token"],
         "user_id": data["user"]["id"],
     }
+
+
+@router.post("/forgot-password")
+async def forgot_password(body: ForgotPasswordRequest):
+    # Supabase emails a recovery link that lands back on `redirect_to` with the session in the URL
+    # hash. Supabase only honours `redirect_to` if it is in Auth > URL Configuration > Redirect URLs,
+    # otherwise it falls back to the Site URL. Always answers the same way, so this can't be used to
+    # check which emails have accounts.
+    payload = {"email": body.email}
+    params = {"redirect_to": body.redirect_to} if body.redirect_to else None
+    try:
+        resp = httpx.post(
+            f"{SUPABASE_URL}/auth/v1/recover",
+            headers={"apikey": SUPABASE_ANON_KEY, "Content-Type": "application/json"},
+            params=params,
+            json=payload,
+            timeout=30,
+        )
+    except Exception:
+        resp = None
+
+    if resp is None or resp.status_code >= 500:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Could not send the reset email right now, please try again in a minute",
+        )
+    if resp.status_code == 429:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many reset requests, please wait a minute and try again",
+        )
+
+    return {"ok": True}
+
+
+@router.post("/reset-password")
+async def reset_password(body: ResetPasswordRequest):
+    # The access token comes from the recovery link, so it only lets the owner of that inbox
+    # change their own password.
+    if len(body.password) < 6:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Password must be at least 6 characters")
+    try:
+        resp = httpx.put(
+            f"{SUPABASE_URL}/auth/v1/user",
+            headers={
+                "apikey": SUPABASE_ANON_KEY,
+                "Authorization": f"Bearer {body.access_token}",
+                "Content-Type": "application/json",
+            },
+            json={"password": body.password},
+            timeout=10,
+        )
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Could not reach the auth server, please try again")
+
+    if resp.status_code == 401 or resp.status_code == 403:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="This reset link has expired, please request a new one",
+        )
+    if resp.status_code != 200:
+        data = resp.json() if resp.content else {}
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=data.get("msg") or data.get("message") or "Could not update the password",
+        )
+
+    return {"ok": True}
 
 
 @router.get("/me")

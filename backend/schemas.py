@@ -26,6 +26,16 @@ class VerifyLoginOtpRequest(BaseModel):
     token: str
 
 
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+    redirect_to: Optional[str] = None
+
+
+class ResetPasswordRequest(BaseModel):
+    access_token: str
+    password: str
+
+
 class SurplusLogCreate(BaseModel):
     food_type: str
     quantity_kg: float

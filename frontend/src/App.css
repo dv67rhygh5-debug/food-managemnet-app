@@ -96,3 +96,4 @@
 @media(max-width:950px){.ngo-grid{grid-template-columns:1fr}}
 @media(max-width:700px){.manage-table{min-width:760px}.assistant-msg{max-width:100%}.assistant-input .primary-btn{padding:12px}.landing-footer .footer-admin{justify-self:end}}
 .facts-page-grid{margin:30px 0 44px}.facts-page-grid p{max-width:none}.facts-page-body{max-width:760px}
+.login-modal .forgot-link{display:block;width:max-content;margin:-6px 0 16px auto;font-size:12px;color:var(--green)}
